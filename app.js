@@ -26,7 +26,7 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Define API routes
-app.use('/', (req,res)=>{
+app.get('/', (req,res)=>{
   res.send("Server's Simple Api")
 });
 app.use('/api/products', productRoutes);
