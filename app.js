@@ -20,16 +20,18 @@ app.use(cors({
 
 // Middleware to parse JSON requests
 app.use(express.json());
-         
+
 // Serve static files from the "uploads" directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Define API routes
-app.use('/', (req,res)=>{
-  res.send("Server's Simple Api")
-});
+// Define API routes - put these before any catch-all or root routes
 app.use('/api/products', productRoutes);
 app.use('/api/auth', authRoutes);
+
+// Define a catch-all route for undefined paths
+app.get('/', (req, res) => {
+  res.send("Server's Simple Api");
+});
 
 // Handle 404 errors
 app.use((req, res, next) => {
