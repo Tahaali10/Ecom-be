@@ -28,10 +28,6 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/products', productRoutes);
 app.use('/api/auth', authRoutes);
 
-// Define a catch-all route for undefined paths
-app.get('/', (req, res) => {
-  res.send("Server's Simple Api");
-});
 
 // Handle 404 errors
 app.use((req, res, next) => {
