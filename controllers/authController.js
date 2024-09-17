@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
-const InvalidToken = require('../models/InvalidToken'); 
+const InvalidToken = require('../models/invalidToken'); 
 
 // Admin credentials from environment variables
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
