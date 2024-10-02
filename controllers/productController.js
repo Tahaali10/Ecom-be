@@ -1,12 +1,6 @@
 const Product = require('../models/Product');
-const multer = require('multer');
 
-// @route    GET api/products
-// @desc     Get all products
-// @access   Public
-// @route    GET api/products
-// @desc     Get all products optionally filtered by subcategory
-// @access   Public
+// Get all products
 exports.getProducts = async (req, res) => {
   const categoryFilter = req.query.category ? { category: req.query.category } : {};
   
@@ -19,14 +13,11 @@ exports.getProducts = async (req, res) => {
   }
 };
 
-
-// @route    GET api/products/:id
-// @desc     Get product by ID
-// @access   Public
+// Get product by ID
 exports.getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
-    if (!product) { 
+    if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
     res.json(product);
@@ -36,20 +27,16 @@ exports.getProductById = async (req, res) => {
   }
 };
 
-// @route    POST api/products
-// @desc     Create a product
-// @access   Private
+// Create a product
 exports.addProduct = async (req, res) => {
   try {
     const { name, price, category, subcategory } = req.body;
     
-    // Check if file is provided
     if (!req.file) {
       return res.status(400).json({ message: 'Image is required.' });
     }
 
-    // Use the file path from Multer
-    const imageUrl = req.file.path;
+    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
 
     const product = new Product({
       name,
@@ -67,13 +54,11 @@ exports.addProduct = async (req, res) => {
   }
 };
 
-// @route    PUT api/products/:id
-// @desc     Update a product
-// @access   Private
+// Update a product
 exports.updateProduct = async (req, res) => {
   try {
     const { name, price, category, subcategory } = req.body;
-    let imageUrl = req.file ? req.file.path : undefined;
+    let imageUrl = req.file ? `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}` : undefined;
 
     const product = await Product.findById(req.params.id);
     if (!product) {
@@ -96,9 +81,7 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
-// @route    DELETE api/products/:id
-// @desc     Delete a product
-// @access   Private
+// Delete a product
 exports.deleteProduct = async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
