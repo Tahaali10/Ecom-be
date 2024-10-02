@@ -12,7 +12,7 @@ connectDB();
 
 const app = express();
 
-const uploadsDir = path.resolve(__dirname, 'uploads');
+const uploadsDir = path.resolve('/tmp', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
     console.log(`Created upload directory at ${uploadsDir}`);
@@ -28,8 +28,8 @@ app.use(cors({
 // Middleware to parse JSON requests
 app.use(express.json());
 
-// Serve static files from the "uploads" directory
-app.use('/uploads', express.static(uploadsDir));
+// Serve static files from the "uploads" directory, allowing cross-origin requests
+app.use('/uploads', cors(), express.static(uploadsDir));
 
 // Define API routes
 app.use('/api/products', productRoutes);

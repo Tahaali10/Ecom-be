@@ -2,7 +2,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-const uploadDirectory = path.resolve(__dirname, '..', 'uploads');  // Absolute path
+// Try using /tmp for Render's ephemeral file system
+const uploadDirectory = path.resolve('/tmp', 'uploads');
 
 // Ensure upload directory exists
 if (!fs.existsSync(uploadDirectory)) {

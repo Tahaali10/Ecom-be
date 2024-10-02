@@ -1,4 +1,6 @@
 const Product = require('../models/Product');
+const fs = require('fs');
+const path = require('path');
 
 // Get all products
 exports.getProducts = async (req, res) => {
@@ -37,7 +39,14 @@ exports.addProduct = async (req, res) => {
     }
 
     const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    const fullPath = path.resolve(__dirname, '..', 'uploads', req.file.filename);
+    
     console.log('Image URL:', imageUrl);
+    if (fs.existsSync(fullPath)) {
+        console.log('File successfully saved at:', fullPath);
+    } else {
+        console.error('File was not saved correctly at:', fullPath);
+    }
 
     const product = new Product({
       name,
@@ -54,7 +63,6 @@ exports.addProduct = async (req, res) => {
     res.status(400).json({ message: 'Error adding product', error: error.message });
   }
 };
-
 // Update a product
 exports.updateProduct = async (req, res) => {
   try {
