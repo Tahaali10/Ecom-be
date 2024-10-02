@@ -3,11 +3,11 @@ const path = require('path');
 
 const storage = multer.diskStorage({
     destination: function(req, file, cb) {
-        // Use an absolute path to ensure consistency across environments
+        // Ensuring the uploads directory is correctly referenced relative to the location of this script
         cb(null, path.join(__dirname, 'uploads'));
     },
     filename: function(req, file, cb) {
-        // Use the field name, current timestamp, and the original file extension
+        // Naming the file uniquely to avoid overwriting existing files
         cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
     }
 });
@@ -24,7 +24,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
-    limits: { fileSize: 1024 * 1024 * 5 } // Limit file size to 5MB
+    limits: { fileSize: 1024 * 1024 * 5 } 
 });
 
 module.exports = upload;
