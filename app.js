@@ -12,11 +12,11 @@ connectDB();
 
 const app = express();
 
-// Ensure the uploads directory exists
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
 }
+
 
 // Enable CORS - allow all origins since it's for a mobile app
 app.use(cors({
