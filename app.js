@@ -12,11 +12,11 @@ connectDB();
 
 const app = express();
 
-const uploadsDir = path.join(__dirname, 'uploads');
+const uploadsDir = path.resolve(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log(`Created upload directory at ${uploadsDir}`);
 }
-
 
 // Enable CORS - allow all origins since it's for a mobile app
 app.use(cors({
@@ -34,6 +34,16 @@ app.use('/uploads', express.static(uploadsDir));
 // Define API routes
 app.use('/api/products', productRoutes);
 app.use('/api/auth', authRoutes);
+
+// List uploaded files (for debugging)
+app.get('/list-uploads', (req, res) => {
+    fs.readdir(uploadsDir, (err, files) => {
+        if (err) {
+            return res.status(500).send('Unable to list uploads');
+        }
+        res.json({ files });
+    });
+});
 
 // Handle 404 errors
 app.use((req, res, next) => {

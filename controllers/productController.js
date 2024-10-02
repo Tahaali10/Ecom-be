@@ -37,6 +37,7 @@ exports.addProduct = async (req, res) => {
     }
 
     const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    console.log('Image URL:', imageUrl);
 
     const product = new Product({
       name,
@@ -71,6 +72,7 @@ exports.updateProduct = async (req, res) => {
     product.subcategory = subcategory || product.subcategory;
     if (imageUrl) {
       product.imageUrl = imageUrl; // Update only if new image is uploaded
+      console.log('Updated Image URL:', imageUrl);
     }
 
     await product.save();
