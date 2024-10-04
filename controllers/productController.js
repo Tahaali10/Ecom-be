@@ -1,6 +1,13 @@
 const Product = require('../models/Product');
 const cloudinary = require('cloudinary').v2;
 
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 // Get all products
 exports.getProducts = async (req, res) => {
   const categoryFilter = req.query.category ? { category: req.query.category } : {};
@@ -38,20 +45,30 @@ exports.addProduct = async (req, res) => {
     }
 
     // Upload image to Cloudinary
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: 'products',
+    const result = await cloudinary.uploader.upload_stream((error, result) => {
+      if (error) {
+        console.error('Cloudinary upload error:', error);
+        return res.status(500).json({ message: 'Cloudinary upload failed', error: error.message });
+      }
+
+      const product = new Product({
+        name,
+        price,
+        category,
+        subcategory,
+        imageUrl: result.secure_url,
+      });
+
+      product.save().then(() => {
+        res.status(201).json(product);
+      }).catch((saveError) => {
+        console.error(saveError);
+        res.status(500).json({ message: 'Error saving product', error: saveError.message });
+      });
     });
 
-    const product = new Product({
-      name,
-      price,
-      category,
-      subcategory,
-      imageUrl: result.secure_url,
-    });
+    result.end(req.file.buffer);
 
-    await product.save();
-    res.status(201).json(product);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error adding product', error: error.message });
@@ -70,21 +87,38 @@ exports.updateProduct = async (req, res) => {
 
     if (req.file) {
       // Upload new image to Cloudinary if provided
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'products',
+      const result = await cloudinary.uploader.upload_stream((error, result) => {
+        if (error) {
+          console.error('Cloudinary upload error:', error);
+          return res.status(500).json({ message: 'Cloudinary upload failed', error: error.message });
+        }
+
+        // Update product image URL
+        product.imageUrl = result.secure_url;
+
+        product.name = name || product.name;
+        product.price = price || product.price;
+        product.category = category || product.category;
+        product.subcategory = subcategory || product.subcategory;
+
+        product.save().then(() => {
+          res.json(product);
+        }).catch((saveError) => {
+          console.error(saveError);
+          res.status(500).json({ message: 'Error saving product', error: saveError.message });
+        });
       });
 
-      // Update product image URL
-      product.imageUrl = result.secure_url;
+      result.end(req.file.buffer);
+    } else {
+      product.name = name || product.name;
+      product.price = price || product.price;
+      product.category = category || product.category;
+      product.subcategory = subcategory || product.subcategory;
+
+      await product.save();
+      res.json(product);
     }
-
-    product.name = name || product.name;
-    product.price = price || product.price;
-    product.category = category || product.category;
-    product.subcategory = subcategory || product.subcategory;
-
-    await product.save();
-    res.json(product);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error updating product', error: error.message });
