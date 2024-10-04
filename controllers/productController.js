@@ -1,101 +1,108 @@
 const Product = require('../models/Product');
 const cloudinary = require('cloudinary').v2;
-cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET
-});
 
+// Get all products
 exports.getProducts = async (req, res) => {
-    try {
-        const products = await Product.find({});
-        res.json(products);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Server error');
-    }
+  const categoryFilter = req.query.category ? { category: req.query.category } : {};
+
+  try {
+    const products = await Product.find(categoryFilter);
+    res.json(products);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Server error');
+  }
 };
 
+// Get product by ID
 exports.getProductById = async (req, res) => {
-    try {
-        const product = await Product.findById(req.params.id);
-        if (!product) {
-            return res.status(404).send('Product not found');
-        }
-        res.json(product);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Server error');
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
     }
+    res.json(product);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Server error');
+  }
 };
 
+// Create a product
 exports.addProduct = async (req, res) => {
-    try {
-        const { name, price, category, subcategory } = req.body;
-        if (!req.file) {
-            return res.status(400).send('Image is required.');
-        }
-        const result = await cloudinary.uploader.upload_stream({
-            resource_type: 'image'
-        }, (error, result) => {
-            if (error) return res.status(500).send('Cloudinary upload failed');
+  try {
+    const { name, price, category, subcategory } = req.body;
 
-            const product = new Product({
-                name,
-                price,
-                category,
-                subcategory,
-                imageUrl: result.secure_url,
-                imagePublicId: result.public_id
-            });
-
-            product.save();
-            res.status(201).json(product);
-        });
-        req.file.stream.pipe(result);
-    } catch (error) {
-        console.error(error);
-        res.status(400).send('Error processing request');
+    if (!req.file) {
+      return res.status(400).json({ message: 'Image is required.' });
     }
+
+    // Upload image to Cloudinary
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: 'products',
+    });
+
+    const product = new Product({
+      name,
+      price,
+      category,
+      subcategory,
+      imageUrl: result.secure_url,
+    });
+
+    await product.save();
+    res.status(201).json(product);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error adding product', error: error.message });
+  }
 };
 
+// Update a product
 exports.updateProduct = async (req, res) => {
-    try {
-        const { name, price, category, subcategory } = req.body;
-        const product = await Product.findById(req.params.id);
-        if (!product) {
-            return res.status(404).send('Product not found');
-        }
-        if (req.file) {
-            await cloudinary.uploader.destroy(product.imagePublicId);
-            const result = await cloudinary.uploader.upload_stream(req.file.path);
-            product.imageUrl = result.secure_url;
-            product.imagePublicId = result.public_id;
-        }
+  try {
+    const { name, price, category, subcategory } = req.body;
 
-        product.name = name;
-        product.price = price;
-        product.category = category;
-        product.subcategory = subcategory;
-
-        await product.save();
-        res.json(product);
-    } catch (error) {
-        console.error(error);
-        res.status(400).send('Error updating product');
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
     }
+
+    if (req.file) {
+      // Upload new image to Cloudinary if provided
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: 'products',
+      });
+
+      // Update product image URL
+      product.imageUrl = result.secure_url;
+    }
+
+    product.name = name || product.name;
+    product.price = price || product.price;
+    product.category = category || product.category;
+    product.subcategory = subcategory || product.subcategory;
+
+    await product.save();
+    res.json(product);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error updating product', error: error.message });
+  }
 };
 
+// Delete a product
 exports.deleteProduct = async (req, res) => {
-    try {
-        const product = await Product.findByIdAndDelete(req.params.id);
-        if (!product) {
-            return res.status(404).send('Product not found');
-        }
-        await cloudinary.uploader.destroy(product.imagePublicId);
-        res.send('Product removed');
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Server error');
+  try {
+    const product = await Product.findByIdAndDelete(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
     }
+
+    res.json({ message: 'Product removed' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Server error');
+  }
 };
