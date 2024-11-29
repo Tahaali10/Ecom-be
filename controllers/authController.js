@@ -11,7 +11,7 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 // Generate JWT with 2 hours expiration
 const generateToken = (id, isAdmin) => {
   return jwt.sign({ id, isAdmin }, process.env.JWT_SECRET, {
-    expiresIn: '2h',
+    expiresIn: '2h',  // Token expires in 2 hours
   });
 };
 
@@ -52,11 +52,11 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'Email is already registered' });
     }
 
-    // Hash the password and create the new user
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ username, password: hashedPassword, email, isAdmin: false });
+    // Create the new user and let the `pre-save` hook handle password hashing
+    const user = new User({ username, password, email, isAdmin: false });
     await user.save();
 
+    // Return the user's data along with the token
     res.status(201).json({
       _id: user.id,
       username: user.username,
@@ -69,12 +69,15 @@ exports.register = async (req, res) => {
   }
 };
 
-// Login user or admin
+// Login the user (admin or regular user)
 exports.login = async (req, res) => {
   const { username, password } = req.body;
 
+  // Check if the login is for an admin user
   if (username === ADMIN_USERNAME) {
     const isMatch = await bcrypt.compare(password, ADMIN_PASSWORD_HASH);
+    console.log('Admin login attempt:', { username, isMatch });
+    
     if (isMatch) {
       return res.json({
         _id: 'admin',
@@ -83,26 +86,47 @@ exports.login = async (req, res) => {
         token: generateToken('admin', true),
       });
     } else {
+      console.log('Invalid admin credentials');
       return res.status(401).json({ message: 'Invalid credentials' });
     }
   } else {
     try {
+      // Check for regular user
       const user = await User.findOne({ username });
-      if (user && await bcrypt.compare(password, user.password)) {
-        // When user logs in, expire the previous token
-        await InvalidToken.create({ token: req.headers.authorization.split(' ')[1] });
-        return res.json({
-          _id: user.id,
-          username: user.username,
-          email: user.email,
-          isAdmin: user.isAdmin,
-          token: generateToken(user._id, user.isAdmin),
-        });
+      console.log('User found:', user);
+
+      if (user) {
+        // Compare the provided password with the stored hashed password
+        const isMatch = await bcrypt.compare(password, user.password);
+        console.log('Password match check:', { username, isMatch });
+
+        if (isMatch) {
+          console.log('Password matched successfully');
+
+          // Invalidate any previous token
+          const token = req.headers.authorization ? req.headers.authorization.split(' ')[1] : null;
+          if (token) {
+            console.log('Invalidating previous token:', token);
+            await InvalidToken.create({ token });
+          }
+
+          return res.json({
+            _id: user.id,
+            username: user.username,
+            email: user.email,
+            isAdmin: user.isAdmin,
+            token: generateToken(user._id, user.isAdmin),
+          });
+        } else {
+          console.log('Invalid user credentials');
+          return res.status(401).json({ message: 'Invalid credentials' });
+        }
       } else {
+        console.log('User not found');
         return res.status(401).json({ message: 'Invalid credentials' });
       }
     } catch (error) {
-      console.error(error);
+      console.error('Error during login process:', error);
       return res.status(500).json({ message: 'Server error' });
     }
   }
